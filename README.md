@@ -99,10 +99,10 @@ Taken altogether, the CPU's basic pseudocode algorithm is
 ```
 program_counter = 0
 
-while (true) {
-  a = program_counter
-  b = program_counter + 1
-  c = program_counter + 2
+while (0 <= program_counter <= 125) {
+  a = memory[program_counter]
+  b = memory[program_counter + 1]
+  c = memory[program_counter + 2]
 
   halt if a < 0 or b < 0 or c < 0
 
@@ -117,11 +117,13 @@ while (true) {
 
 Notice a few things:
 - The program counter starts at address 0
+- The program counter must stay between 0 and 125 to ensure `a`, `b`, and `c` can be read from memory (which is indexed 0 through 127)
 - Subtraction is memory-to-memory, no immediate values
-- The third argument, `c`, is an immediate value representing a new address
+- Branching is absolute, no relative jumps
+- `c` is an immediate value representing a new address (i.e., we don't look up `memory[c]`)
 - The program counter increments by 3 because each `xand` is encoded as 3 consecutive signed bytes
 
-The program counter is stored as a signed byte, since we use it as the value for `a` and it is assigned a value from `c`. This means that `program_counter += 3` might also overflow into a negative value, halting execution. Just something to keep in mind.
+In principle, we only need 7 bits to store the program counter, since memory can only be addressed by 7 bits. This would make the `0 <= program_counter <= 125` check a little more convoluted, since we'd have to reason about overflows when incrementing the program counter. For example, 125 (`111 1101`) + 3 would wrap around back to 0, since we'd lose the most significant bit in `1000 0000` if we were only storing the lowest 7 bits. Maybe it'd be cool to have addressing continually wrap around the end of the memory array, but it's simpler to have it halt once it reaches the end. Furthermore, we write the value of `c` (8 bits wide) into the program counter, and would like to use negative values of `c` to force the VM to halt. As such, the program counter is stored as a signed byte - which, by now, you probably expected.
 
 There is no separation between instructions and data. They all reside in the same memory. The juxtaposition of 3 bytes of data together form an `xand` instruction, so really data & instructions are one and the same. It's usually easiest to treat data as single byte values, since you're limited to manipulating one byte of memory at a time via `xand`'s destructive subtraction. `xand` might be used to twiddle bits in some [unreachable](https://en.wikipedia.org/wiki/Unreachable_code) portion of memory sectioned off "just for data", or it could give rise to [self-modifying code](https://en.wikipedia.org/wiki/Self-modifying_code). Use your imagination. :rainbow:
 

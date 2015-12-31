@@ -3,13 +3,13 @@ package xand
 import scala.util.Try
 
 object Compiler {
-  def compile(code: String): Try[Seq[Byte]] =
+  def compile(code: String): Try[Bytecode] =
     for {
       program <- Parser.parse(code)
     } yield (new CompilationUnit(program)).bytecode
 
-  final class ProgramTooLong
-    extends Exception("Program will not fit in memory.")
+  final object ProgramTooLong
+    extends Exception("Bytecode will not fit in memory.")
 
   final class UnknownLabel(label: String)
     extends Exception(s"Unknown label: `$label'.")
@@ -22,7 +22,7 @@ object Compiler {
       def hasNext: Boolean = instructions.hasNext
 
       def next(): Byte = {
-        if (address < 0) throw new ProgramTooLong()
+        if (address < 0) throw ProgramTooLong
         val current = address
         instructions.next() match {
           case _: Data => address = (address + 1).toByte
@@ -48,12 +48,12 @@ object Compiler {
       })
     }
 
-    def emit(address: Byte, instruction: Instruction): Seq[Byte] =
+    def emit(address: Byte, instruction: Instruction): Bytecode =
       instruction match {
         case Xand(_, a, b, c) => Seq(a, b, c) map resolveAt(address)
         case Data(_, literal) => Seq(literal)
       }
 
-    def bytecode: Seq[Byte] = memoryMap flatMap Function.tupled(emit)
+    def bytecode: Bytecode = memoryMap flatMap Function.tupled(emit)
   }
 }
