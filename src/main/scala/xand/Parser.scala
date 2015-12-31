@@ -1,8 +1,8 @@
 package xand
 
+import scala.util.Try
 import scala.util.control.Exception._
 import scala.util.parsing.combinator._
-import xand.ast._
 
 object Parser extends RegexParsers {
   val byte: Parser[Byte] = """-?\d+""".r ^? (
@@ -27,10 +27,16 @@ object Parser extends RegexParsers {
     case label ~ value => Data(label, value)
   }
 
-  val program: Parser[Seq[Expression]] = rep1(xand | data)
+  val instruction: Parser[Instruction] = xand | data
 
-  def apply(in: String) = parseAll(program, in) match {
-    case Success(result, _) => result
-    case failure: NoSuccess => println(failure)
+  val program: Parser[Program] = rep1(instruction)
+
+  class ParseException(failure: NoSuccess) extends Exception(failure.toString)
+
+  def parse(code: String): Try[Program] = Try {
+    parseAll(program, code) match {
+      case Success(instructions, _) => instructions
+      case failure: NoSuccess => throw new ParseException(failure)
+    }
   }
 }
