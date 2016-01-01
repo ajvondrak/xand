@@ -21,6 +21,8 @@ A truth so obvious it dares us to ignore it - and we have. You won't find it in 
 3. `cd xand`
 4. `sbt run`
 
+This will run a simulation of the code from [fib.xand](https://github.com/ajvondrak/xand/blob/master/src/main/resources/xand/fib.xand), computing the 10th Fibonacci number.
+
 ## How It Works
 
 In layman's terms, `xand` is a binary operator that takes three arguments and gives you four times the power. It's literally infinitely more versatile than any ordinary computer instruction, because `xand` is an instruction from which all others can follow. [One instruction to rule them all.](https://en.wikipedia.org/wiki/One_instruction_set_computer)
@@ -225,4 +227,4 @@ xand -1 -1 -1
 
 You can still of course use `...` even if the next instruction has an explicit label. Mix & match however you'd like.
 
-To see this language in action, check out the Fibonacci example in [fib.xand](TODO).
+To see this language in action, check out the Fibonacci example in [fib.xand](https://github.com/ajvondrak/xand/blob/master/src/main/resources/xand/fib.xand).
