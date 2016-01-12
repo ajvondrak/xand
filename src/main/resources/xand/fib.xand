@@ -1,11 +1,11 @@
 while_n_gt_2:
-xand two n continue
+xand three n continue
 exit: -1
 
 continue:
-xand zero n    ...
-xand two  zero ...
-xand zero zero ...
+xand zero  n    ...
+xand three zero ...
+xand zero  zero ...
 
 copy_prev_to_prev2:
 xand prev2 prev2 ...
@@ -30,7 +30,7 @@ xand zero zero while_n_gt_2
 
  zero: 0
   one: 1
-  two: 2
+three: 3
     n: 10
 prev2: 0
  prev: 1
