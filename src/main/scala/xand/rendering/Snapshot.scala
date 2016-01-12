@@ -2,6 +2,7 @@ package xand
 package rendering
 
 import Colors.Color
+import sys.process._
 
 class Snapshot(vm: VM) {
   implicit class FormattedByte(byte: Byte) {
@@ -62,7 +63,7 @@ class Snapshot(vm: VM) {
     val rows: Array[Array[Cell]] = columns.transpose
 
     override def toString: String =
-      rows.map(_.mkString(" | ")).mkString("\n", "\n", "\n")
+      rows.map(_.mkString(" | ")).mkString("\n", "\n", "")
 
     def pointAt(pc: ProgramCounter) { cells(pc.address).point }
   }
@@ -81,8 +82,26 @@ class Snapshot(vm: VM) {
     pause()
   }
 
-  def clear() { print("\n" * 40) } // TODO cls
-  def pause() { Thread.sleep(750L) }
+  def pause() { Thread.sleep(500L) }
+
+  /* Just doing a straight "clear".! or printing the ANSI "move cursor to top
+   * of screen, erase contents" code (i.e., "\033[H\033[2J") results in choppy
+   * output in URXVT. Presumably it has to do with the blip from erasing the
+   * content, then flushing the new content into the terminal. I don't really
+   * know.
+   *
+   * But aside from that, literally overwriting the old content makes it hard
+   * to debug programs, because you can't just look at the scrollback and see
+   * the sequence of states.
+   *
+   * Thus, I emulate the `clear` / ctrl-L behavior you get in other VTs by
+   * making a call to `tput` to find out how many newlines we have to print
+   * out. I presume (hope) this works in terminals other than mine.
+   */
+
+  def clear() { print("\n" * lines) }
+
+  private def lines: Int = "tput lines".!!.trim.toInt
 }
 
 object Snapshot {
