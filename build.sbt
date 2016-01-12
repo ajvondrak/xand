@@ -8,4 +8,8 @@ libraryDependencies ++= Seq(
   "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
 )
 
-initialCommands in console := "import xand._"
+initialCommands in console := """
+import xand._
+import xand.rendering._
+import Colors._
+"""

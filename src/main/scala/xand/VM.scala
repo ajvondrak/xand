@@ -1,6 +1,6 @@
 package xand
 
-object VM {
+class VM {
   object Halt extends scala.util.control.ControlThrowable
 
   /* Program Counter */
@@ -19,19 +19,35 @@ object VM {
 
   def run() { while (true) step() }
 
-  def step() {
+  protected def step() {
     fetch()
     xand() /* = decode + execute, since there's no decoding */
   }
 
-  private def fetch() {
+  protected def fetch() {
     if (pc < 0 || pc + 2 >= memory.size) throw Halt
     ir = (memory(pc), memory(pc + 1), memory(pc + 2))
     if (ir._1 < 0 || ir._2 < 0 || ir._3 < 0) throw Halt
   }
 
-  private def xand() {
+  protected def xand() {
+    sub()
+    blez()
+  }
+
+  protected def sub() {
     memory(ir._1) = (memory(ir._1) - memory(ir._2)).toByte
-    pc = if (memory(ir._1) <= 0) ir._3 else (pc + 3).toByte
+  }
+
+  protected def blez() {
+    if (memory(ir._1) <= 0) branch() else continue()
+  }
+
+  protected def branch() {
+    pc = ir._3
+  }
+
+  protected def continue() {
+    pc = (pc + 3).toByte
   }
 }

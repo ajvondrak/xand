@@ -1,8 +1,8 @@
 package xand
 
 import scala.util.Try
-import scala.util.control.Exception._
-import scala.util.parsing.combinator._
+import scala.util.control.Exception.catching
+import scala.util.parsing.combinator.RegexParsers
 
 object Parser extends RegexParsers {
   val byte: Parser[Byte] = """-?\d+""".r ^? (
