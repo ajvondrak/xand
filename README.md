@@ -21,11 +21,15 @@ A truth so obvious it dares us to ignore it - and we have. You won't find it in 
 3. `cd xand`
 4. `sbt run`
 
-This will run a simulation of the code from [fib.xand](https://github.com/ajvondrak/xand/blob/master/src/main/resources/xand/fib.xand), computing the 10th Fibonacci number.
+This will run a simulation of the code from [fib.xand](https://github.com/ajvondrak/xand/blob/master/src/main/resources/xand/fib.xand), computing the 10th Fibonacci number in memory cell 58 (also keep an eye on 56 & 57 to watch the previous two Fibonacci numbers used for the sum at 58).
+
+The simulation makes use of [`tput`](https://en.wikipedia.org/wiki/Tput) and [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code), so it behooves you to run this in a Unix-y terminal.
+
+You can also run your own source with `sbt "run /path/to/your/file.xand"`.
 
 ## How It Works
 
-In layman's terms, `xand` is a binary operator that takes three arguments and gives you four times the power. It's literally infinitely more versatile than any ordinary computer instruction, because `xand` is an instruction from which all others can follow. [One instruction to rule them all.](https://en.wikipedia.org/wiki/One_instruction_set_computer)
+In layman's terms, `xand` is a binary operator that takes three arguments and gives you four times the power. It's five times as versatile as any ordinary computer instruction, because `xand` is an instruction from which six others can follow. Even more, actually: this [one instruction to rule them all](https://en.wikipedia.org/wiki/One_instruction_set_computer) can be used to synthesize literally *any* possible instruction.
 
 Given
 
@@ -55,16 +59,17 @@ Some have called this instruction an awkward name like [`subleq`](http://arxiv.o
 You've gotten the gist of how `xand` the *instruction* works, but it's important to note the implementation details about how xand the *project* works.
 
 This project provides
-- a [VM](https://en.wikipedia.org/wiki/Virtual_machine) that executes `xand` instructions (and only `xand` instructions)
-- a simulator that provides a pretty way to watch your code as it runs on the xand VM
+- a VM that executes `xand` instructions (and only `xand` instructions)
+- a simulator that gives us a pretty way to watch code as it runs on the xand VM
 - a compiler that translates a somewhat higher-level assembly language into xand bytecode that the VM can execute
 
 ### VM
 
 The VM is a facsimile of a very basic hardware system consisting of:
 - a general-purpose memory array
-- a program counter (separate from the memory) that tracks the memory address currently being executed by the CPU
-- a CPU that executes `xand` instructions read from the memory
+- an instruction register to store the `xand` that's being executed
+- a program counter that tracks the memory address to load into the instruction register
+- a CPU that executes the `xand` currently in the instruction register
 
 The memory has been purposefully kept small, just so that the entire contents can comfortably be displayed on one screen by the simulator. Each memory cell consists of one 8-bit byte. There are 128 total memory cells addressed 0-127:
 
@@ -92,7 +97,7 @@ Thus we see that each operand of an `xand` is also itself limited to an 8-bit va
 
 So why are there 128 addresses instead of 256? Couldn't the `c` above be 8 bits long, thus telling the `xand` to branch to one of 2<sup>8</sup> = 256 addresses?
 
-In principle, yes. But just in case we don't want our simulator to run forever, the CPU has a built-in *halting condition*. If the CPU is ever told to read a negative address, it will halt execution. To that end, the CPU interprets memory contents as *signed* bytes - numbers between -128 and +127 inclusive. (For once, the JVM's decision to treat bytes as a signed data type comes in handy!) Since negative addresses halt execution, we effectively halve our addressable space (i.e., effectively using 7 of 8 bits, since one of them indicates the sign).
+In principle, yes. But just in case we don't want our simulator to run forever, the CPU has a built-in *halting condition*. If the CPU is ever told to read a negative address, it will halt execution. To that end, the CPU interprets memory contents as *signed* bytes: numbers between -128 and +127 inclusive. (For once, the JVM's decision to treat bytes as a signed data type comes in handy!) Since negative addresses halt execution, we effectively halve our addressable space (i.e., effectively using 7 of 8 bits, since one of them indicates the sign).
 
 Furthermore, the CPU is doing arithmetic. Just two operations (subtraction and comparison), but arithmetic all the same. It needs some concept of a negative value, since `xand` has to test whether the result of a subtraction is less than or equal to zero. Again, in principle you might cleverly detect [arithmetic underflow](https://en.wikipedia.org/wiki/Arithmetic_underflow) or whatnot and squeeze out that 8th bit. But between the halting condition, negative values providing useful semantics, and just general ease of implementation, it's simpler to go with a 7-bit address space.
 
@@ -123,11 +128,11 @@ Notice a few things:
 - Subtraction is memory-to-memory, no immediate values
 - Branching is absolute, no relative jumps
 - `c` is an immediate value representing a new address (i.e., we don't look up `memory[c]`)
-- The program counter increments by 3 because each `xand` is encoded as 3 consecutive signed bytes
+- The program counter increments by 3 in the fall-through case because each `xand` is encoded as 3 consecutive signed bytes
 
-In principle, we only need 7 bits to store the program counter, since memory can only be addressed by 7 bits. This would make the `0 <= program_counter <= 125` check a little more convoluted, since we'd have to reason about overflows when incrementing the program counter. For example, 125 (`111 1101`) + 3 would wrap around back to 0, since we'd lose the most significant bit in `1000 0000` if we were only storing the lowest 7 bits. Maybe it'd be cool to have addressing continually wrap around the end of the memory array, but it's simpler to have it halt once it reaches the end. Furthermore, we write the value of `c` (8 bits wide) into the program counter, and would like to use negative values of `c` to force the VM to halt. As such, the program counter is stored as a signed byte - which, by now, you probably expected.
+In principle, we only need 7 bits to store the program counter, since memory can only be addressed by 7 bits. This would make the `0 <= program_counter <= 125` check a little more convoluted, since we'd have to reason about overflows when incrementing the program counter. For example, 125 (`111 1101`) + 3 would wrap around back to 0, since we'd lose the most significant bit in `1000 0000` (128) if we were only storing the lowest 7 bits. Maybe it'd be cool to have addressing continually wrap around the end of the memory array, but it's simpler to have it halt once it reaches the end. Furthermore, we write the value of `c` (8 bits wide) into the program counter, and would like to use negative values of `c` to force the VM to halt. As such, the program counter is stored as a signed byte - which, by now, you probably expected.
 
-There is no separation between instructions and data. They all reside in the same memory. The juxtaposition of 3 bytes of data together form an `xand` instruction, so really data & instructions are one and the same. It's usually easiest to treat data as single byte values, since you're limited to manipulating one byte of memory at a time via `xand`'s destructive subtraction. `xand` might be used to twiddle bits in some [unreachable](https://en.wikipedia.org/wiki/Unreachable_code) portion of memory sectioned off "just for data", or it could give rise to [self-modifying code](https://en.wikipedia.org/wiki/Self-modifying_code). Use your imagination. :rainbow:
+There is no separation between instructions and data. They all reside in the same memory. The juxtaposition of 3 bytes of data together form an `xand` instruction, so really data & instructions are one and the same. It's usually easiest to treat data as single byte values, since you're limited to manipulating one byte of memory at a time via `xand`'s destructive subtraction. So `xand` might be used to twiddle bits in some [unreachable](https://en.wikipedia.org/wiki/Unreachable_code) portion of memory sectioned off "just for data", or it could give rise to [self-modifying code](https://en.wikipedia.org/wiki/Self-modifying_code). Use your imagination. :rainbow:
 
 ### Compiler
 
@@ -170,7 +175,7 @@ But the real convenience comes from *labels*. Labels:
 - must start with a letter or an underscore; and
 - may contain letters (`a`-`z`), underscores (`_`), or numbers (`0`-`9`).
 
-To define a label, prefix any given `xand` or raw data with the label's name followed by a colon like so
+To define a label, prefix any given `xand` or raw data with the label's name followed by a colon, like so:
 
 ```
 foo: xand 10 20 30
